@@ -27,6 +27,13 @@ function createDbConnection(){
     $dbConnection = null;
 }
 
+function executeSelectDbQuery($sql){
+    $STH = createDbConnection()->prepare($sql);
+    $STH->execute();
+    $result = $STH->fetchAll();
+    return $result;
+}
+
 
 
 ///create initial non-normalized model table
@@ -40,7 +47,7 @@ foreach (createDbConnection()->query($sqlCheckInitialTable) as $row) {
     if ($row[0] == 0){
         //if Initial table doesn't exist, then create it
         $sqlCreateInitialTable = "CREATE TABLE `$dbName`.`$initialTableName` (
-            `NumeroPedido` INT NOT NULL AUTO_INCREMENT,
+            `NumeroPedido` INT NOT NULL,
             `NomeCliente` VARCHAR(100) NOT NULL,
             `CPF` CHAR(11) NOT NULL,
             `Email` NCHAR(100) NULL, #10 characters max size was way too small
@@ -48,8 +55,8 @@ foreach (createDbConnection()->query($sqlCheckInitialTable) as $row) {
             `CodBarras` VARCHAR(20) NOT NULL,
             `NomeProduto` VARCHAR(100) NULL,
             `ValorUnitario` DECIMAL(15,2) NOT NULL,
-            `Quantidade` INT NOT NULL,
-            PRIMARY KEY (`NumeroPedido`))
+            `Quantidade` INT NOT NULL
+            )
         COMMENT = 'Tabela inicial com modelagem de dados desnormalizada';
         ";
 
@@ -59,6 +66,7 @@ foreach (createDbConnection()->query($sqlCheckInitialTable) as $row) {
 
         } catch (Exception $e) {
             echo "</br>\nHouve um erro ao criar a tabela inicial!\n\n";
+            echo "</br>".$e;
         }
 
     } else {
@@ -67,10 +75,10 @@ foreach (createDbConnection()->query($sqlCheckInitialTable) as $row) {
 }
 
 
-
 ///insert fake data into non-normalized model table
 $faker = Faker\Factory::create('pt_BR');
 
+//na tabela inicial `NumeroPedido` não é PK se cada pedido puder ter mais de um produto, tabela PedidoItem existe se cada pedido tiver mais de um item.
 function generateFakeSqlInsert(){
     Global $faker;
 
@@ -86,15 +94,41 @@ function generateFakeSqlInsert(){
     $valorUnitario = $faker->randomFloat($nbMaxDecimals = 2, $min = 1, $max = 1000);
     $quantidade = $faker->randomDigitNot(0);
 
-    return $sqlInsertInitialFakeData = "INSERT INTO `Projeto_PHP_Newtab`.`tabela_inicial_pedido` (`NomeCliente`, `CPF`, `Email`, `DtPedido`, `CodBarras`, `NomeProduto`, `ValorUnitario`, `Quantidade`)
-                                        VALUES ('$nome', '$cpf', '$email', '$randomDate', '$codBarras', '$nomeProduto', $valorUnitario, $quantidade);";
+    
+    $TotalFakes = executeSelectDbQuery("SELECT COUNT(*) AS TotalFakes FROM `Projeto_PHP_Newtab`.`tabela_inicial_pedido`")[0]['TotalFakes'];
+    $FakeRegistries = executeSelectDbQuery("SELECT * FROM `Projeto_PHP_Newtab`.`tabela_inicial_pedido`");
+    $newNumeroPedido = (count($FakeRegistries) == 0 ? 1 : $FakeRegistries[count($FakeRegistries)-1]['NumeroPedido'] + 1);
+
+    // generates everything new [clientes, produtos, pedidos] till 50 registries
+    if ($TotalFakes < 50){
+        return $sqlInsertInitialFakeData = "INSERT INTO `Projeto_PHP_Newtab`.`tabela_inicial_pedido` (`NumeroPedido`, `NomeCliente`, `CPF`, `Email`, `DtPedido`, `CodBarras`, `NomeProduto`, `ValorUnitario`, `Quantidade`)
+                                            VALUES ('$newNumeroPedido', '$nome', '$cpf', '$email', '$randomDate', '$codBarras', '$nomeProduto', $valorUnitario, $quantidade);";
+
+    // generates new [pedidos, produtos] till 200 registries, it will randomly reuse previous clientes data (NomeCliente, CPF, Email) registered at the first 50 registries
+    } elseif ($TotalFakes < 200){
+        $reuseRandomCliente = $FakeRegistries[rand(1,50)];
+
+        return $sqlInsertInitialFakeData = "INSERT INTO `Projeto_PHP_Newtab`.`tabela_inicial_pedido` (`NumeroPedido`, `NomeCliente`, `CPF`, `Email`, `DtPedido`, `CodBarras`, `NomeProduto`, `ValorUnitario`, `Quantidade`)
+                                            VALUES ('$newNumeroPedido', '".$reuseRandomCliente['NomeCliente']."', '".$reuseRandomCliente['CPF']."', '".$reuseRandomCliente['Email']."', '$randomDate', '$codBarras', '$nomeProduto', $valorUnitario, $quantidade);";
+
+    //generates only new [produtos] above 200 registries, it will randomly reuse previous clientes data (NomeCliente, CPF, Email) and pedidos (NumeroPedido, DtPedido) registered at the first 200 registries
+    } elseif ($TotalFakes >= 200){
+        $reuseRandomPedidoCliente = $FakeRegistries[rand(1,200)];
+
+        return $sqlInsertInitialFakeData = "INSERT INTO `Projeto_PHP_Newtab`.`tabela_inicial_pedido` (`NumeroPedido`, `NomeCliente`, `CPF`, `Email`, `DtPedido`, `CodBarras`, `NomeProduto`, `ValorUnitario`, `Quantidade`)
+                                            VALUES ('".$reuseRandomPedidoCliente['NumeroPedido']."', '".$reuseRandomPedidoCliente['NomeCliente']."', '".$reuseRandomPedidoCliente['CPF']."', '".$reuseRandomPedidoCliente['Email']."', '".$reuseRandomPedidoCliente['DtPedido']."', '$codBarras', '$nomeProduto', $valorUnitario, $quantidade);";
+
+    }
+    //insert para caso de cada pedido ter apenas um produto
+    // return $sqlInsertInitialFakeData = "INSERT INTO `Projeto_PHP_Newtab`.`tabela_inicial_pedido` (`NomeCliente`, `CPF`, `Email`, `DtPedido`, `CodBarras`, `NomeProduto`, `ValorUnitario`, `Quantidade`)
+    //                                     VALUES ('$nome', '$cpf', '$email', '$randomDate', '$codBarras', '$nomeProduto', $valorUnitario, $quantidade);";
 }
 
 // check how many fake registries data there are alrdy in the db
 $sqlCheckDataInitialTable = "SELECT COUNT(NumeroPedido) FROM Projeto_PHP_Newtab.tabela_inicial_pedido";
 
 foreach (createDbConnection()->query($sqlCheckDataInitialTable) as $row) {
-    $maxFakes = 1000;
+    $maxFakes = 500;
 
     if ($row[0] < $maxFakes){
         // fill up till $maxFakes
@@ -265,11 +299,49 @@ foreach (createDbConnection()->query($sqlCheckPedidoItemTable) as $row) {
 
 
 
-
 ///migrate data from non-normalized model into normalized model tables
 
+$sqlSelectInitialTable = "SELECT * FROM Projeto_PHP_Newtab.tabela_inicial_pedido";
+//bring all data from initial table to be migrated to normalized tables
+foreach (createDbConnection()->query($sqlSelectInitialTable) as $row) {
+
+    try {
+        //check if the current cliente in the $row is alrdy registered on normalized tables
+        $cpf = $row['CPF'];
+        $sqlCheckClientExist = "SELECT ID FROM Projeto_PHP_Newtab.Cliente WHERE CPF = '$cpf'";
+
+        $arrayClientesNormalized = executeSelectDbQuery($sqlCheckClientExist);
+        if(count($arrayClientesNormalized) != 0){
+            //if it is, return its ID
+            $ClienteNormalizedID = $arrayClientesNormalized[0]['ID'];
+        } else {
+            $nome = $row['NomeCliente'];
+            $email = $row['Email'];
+            //if it's not, then register it and return its ID
+            $sqlInsertNormalizedCliente = "INSERT INTO `Projeto_PHP_Newtab`.`Cliente` (`NomeCliente`, `CPF`, `Email`)
+                                            VALUES ('$nome', '$cpf', '$email');";
+            $db = createDbConnection();
+            $insertCliente = $db->prepare($sqlInsertNormalizedCliente);
+            $insertCliente->execute();
+            $ClienteNormalizedID = $db->lastInsertId();
+        }
+
+    } catch (Exception $e) {
+        echo "$e";
+    }
+
+    
+    
+    
+
+    
 
 
+
+    echo'</br>';
+    print_r($row);
+    echo'</br>';
+}
 
 
 
