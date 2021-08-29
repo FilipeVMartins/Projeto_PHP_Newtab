@@ -2,9 +2,8 @@
 
 require_once 'vendor/autoload.php';
 
-
-
-///database config
+// 1- create the database 'Projeto_PHP_Newtab', 2- create the db user 'projetophpnewtab', 3- grant the created user 'projetophpnewtab' the necessary permissions.
+///database config,
 $host = 'localhost';
 $dbName = 'Projeto_PHP_Newtab';
 $username = 'projetophpnewtab';
@@ -45,7 +44,7 @@ $sqlCheckInitialTable = "SELECT COUNT(table_name) FROM information_schema.tables
 foreach (createDbConnection()->query($sqlCheckInitialTable) as $row) {
 
     if ($row[0] == 0){
-        //if Initial table doesn't exist, then create it
+        //if Initial table doesn't exist, then create it, NumeroPedido cannot be PK because in this table it's not unique 
         $sqlCreateInitialTable = "CREATE TABLE `$dbName`.`$initialTableName` (
             `NumeroPedido` INT NOT NULL,
             `NomeCliente` VARCHAR(100) NOT NULL,
@@ -94,7 +93,7 @@ function generateFakeSqlInsert(){
     $valorUnitario = $faker->randomFloat($nbMaxDecimals = 2, $min = 1, $max = 1000);
     $quantidade = $faker->randomDigitNot(0);
 
-    
+
     $TotalFakes = executeSelectDbQuery("SELECT COUNT(*) AS TotalFakes FROM `Projeto_PHP_Newtab`.`tabela_inicial_pedido`")[0]['TotalFakes'];
     $FakeRegistries = executeSelectDbQuery("SELECT * FROM `Projeto_PHP_Newtab`.`tabela_inicial_pedido`");
     $newNumeroPedido = (count($FakeRegistries) == 0 ? 1 : $FakeRegistries[count($FakeRegistries)-1]['NumeroPedido'] + 1);
@@ -300,20 +299,26 @@ foreach (createDbConnection()->query($sqlCheckPedidoItemTable) as $row) {
 
 
 ///migrate data from non-normalized model into normalized model tables
-
+echo '</br>Iniciando migração da base de dados...</br>';
 $sqlSelectInitialTable = "SELECT * FROM Projeto_PHP_Newtab.tabela_inicial_pedido";
 //bring all data from initial table to be migrated to normalized tables
 foreach (createDbConnection()->query($sqlSelectInitialTable) as $row) {
-
+    //echo print_r($row);
+    // new ID's from normalized tables
+    $produtoNormalizedID=0;
+    $clienteNormalizedID=0;
+    $pedidoNormalizedID=0;
+    
+    //migrate 'clientes'
     try {
-        //check if the current cliente in the $row is alrdy registered on normalized tables
+        //check if the current cliente in the $row is alrdy registered on normalized tables, the unique identifier field will be 'CPF'
         $cpf = $row['CPF'];
         $sqlCheckClientExist = "SELECT ID FROM Projeto_PHP_Newtab.Cliente WHERE CPF = '$cpf'";
 
         $arrayClientesNormalized = executeSelectDbQuery($sqlCheckClientExist);
         if(count($arrayClientesNormalized) != 0){
             //if it is, return its ID
-            $ClienteNormalizedID = $arrayClientesNormalized[0]['ID'];
+            $clienteNormalizedID = $arrayClientesNormalized[0]['ID'];
         } else {
             $nome = $row['NomeCliente'];
             $email = $row['Email'];
@@ -323,30 +328,103 @@ foreach (createDbConnection()->query($sqlSelectInitialTable) as $row) {
             $db = createDbConnection();
             $insertCliente = $db->prepare($sqlInsertNormalizedCliente);
             $insertCliente->execute();
-            $ClienteNormalizedID = $db->lastInsertId();
+            $clienteNormalizedID = $db->lastInsertId();
         }
 
     } catch (Exception $e) {
+        echo "Houve um erro ao migrar os usuários.";
         echo "$e";
+        exit;
     }
-
-    
-    
-    
-
-    
+    //echo "Os usuários foram migrados.";
 
 
+    //migrate 'produtos'
+    try {
+        //check if the current produto in the $row is alrdy registered on normalized tables, the unique identifier field will be 'CodBarras'
+        $codBarras = $row['CodBarras'];
+        $sqlCheckProdutoExist = "SELECT ID FROM Projeto_PHP_Newtab.Produto WHERE CodBarras = '$codBarras'";
 
-    echo'</br>';
-    print_r($row);
-    echo'</br>';
+        $arrayProdutosNormalized = executeSelectDbQuery($sqlCheckProdutoExist);
+        if(count($arrayProdutosNormalized) != 0){
+            //if it is, return its ID
+            $produtoNormalizedID = $arrayProdutosNormalized[0]['ID'];
+        } else {
+            $NomeProduto = $row['NomeProduto'];
+            $ValorUnitario = $row['ValorUnitario'];
+            //if it's not, then register it and return its ID
+            $sqlInsertNormalizedProduto = "INSERT INTO `Projeto_PHP_Newtab`.`Produto` (`CodBarras`, `NomeProduto`, `ValorUnitario`)
+                                            VALUES ('$codBarras', '$NomeProduto', '$ValorUnitario');";
+            $db = createDbConnection();
+            $insertProduto = $db->prepare($sqlInsertNormalizedProduto);
+            $insertProduto->execute();
+            $produtoNormalizedID = $db->lastInsertId();
+        }
+
+    } catch (Exception $e) {
+        echo "Houve um erro ao migrar os produtos.";
+        echo "$e";
+        exit;
+    }
+    //echo "Os produtos foram migrados.";
+
+
+    //migrate 'pedidos'
+    try {
+        //check if the current pedido in the $row is alrdy registered on normalized tables, the unique identifier field will be 'NumeroPedido'
+        $numeroPedido = $row['NumeroPedido'];
+        $sqlCheckPedidoExist = "SELECT NumeroPedido FROM Projeto_PHP_Newtab.Pedido WHERE NumeroPedido = '$numeroPedido'";
+
+        $arrayPedidosNormalized = executeSelectDbQuery($sqlCheckPedidoExist);
+        if(count($arrayPedidosNormalized) != 0){
+            //if it is, return its ID
+            $pedidoNormalizedID = $arrayPedidosNormalized[0]['NumeroPedido'];
+        } else {
+            $dtPedido = $row['DtPedido'];
+            //if it's not, then register it and return its ID
+            $sqlInsertNormalizedPedido = "INSERT INTO `Projeto_PHP_Newtab`.`Pedido` (`NumeroPedido`, `ID_Cliente`, `DtPedido`)
+                                            VALUES ('$numeroPedido', '$clienteNormalizedID', '$dtPedido');";
+            $db = createDbConnection();
+            $insertPedido = $db->prepare($sqlInsertNormalizedPedido);
+            $insertPedido->execute();
+            $pedidoNormalizedID = $db->lastInsertId();
+        }
+
+    } catch (Exception $e) {
+        echo "Houve um erro ao migrar os pedidos.";
+        echo "$e";
+        exit;
+    }
+    //echo "Os pedidos foram migrados.";
+
+
+    //migrate 'itens dos pedidos'
+    try {
+        //check if the current PedidoItem in the $row is alrdy registered on normalized tables, the unique identifiers fields will be the Foreing keys 'ID_NumeroPedido' and 'ID_Produto' from previous inserted tables.
+        $sqlCheckPedidoItemExist = "SELECT ID FROM Projeto_PHP_Newtab.PedidoItem WHERE ID_NumeroPedido = '$pedidoNormalizedID' AND ID_Produto = '$produtoNormalizedID'";
+
+        $arrayPedidoItemsNormalized = executeSelectDbQuery($sqlCheckPedidoItemExist);
+        if(count($arrayPedidoItemsNormalized) != 0){
+            //if it is, return its ID, this table doesn't rly need an ID, and this info won't be used elsewhere
+            //$pedidoItemNormalizedID = $arrayPedidoItemsNormalized[0]['NumeroPedido'];
+        } else {
+            $quantidade = $row['Quantidade'];
+            //if it's not, then register it and return its ID
+            $sqlInsertNormalizedPedidoItem = "INSERT INTO `Projeto_PHP_Newtab`.`PedidoItem` (`ID_NumeroPedido`, `ID_Produto`, `Quantidade`)
+                                                VALUES ('$pedidoNormalizedID', '$produtoNormalizedID', '$quantidade');";
+            $db = createDbConnection();
+            $insertPedidoItem = $db->prepare($sqlInsertNormalizedPedidoItem);
+            $insertPedidoItem->execute();
+            //$pedidoItemNormalizedID = $db->lastInsertId();
+        }
+
+    } catch (Exception $e) {
+        echo "Houve um erro ao migrar os itens dos pedidos.";
+        echo "$e";
+        exit;
+    }
+    //echo "Os itens dos pedidos foram migrados.";
 }
-
-
-
-
-
-
-
+echo 'Migração da base de dados concluída.</br>';
+echo '</br><a href="/">Voltar</a>';
 ?>
