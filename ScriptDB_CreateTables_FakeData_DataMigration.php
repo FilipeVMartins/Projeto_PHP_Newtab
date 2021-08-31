@@ -1,39 +1,12 @@
 <?php
 
 require_once 'vendor/autoload.php';
+require_once 'dbFunctions/dbConnection.php';
 
-// 1- create the database 'Projeto_PHP_Newtab', 2- create the db user 'projetophpnewtab', 3- grant the created user 'projetophpnewtab' the necessary permissions.
-///database config,
-$host = 'localhost';
-$dbName = 'Projeto_PHP_Newtab';
-$username = 'projetophpnewtab';
-$password = 'Projeto$PHP1';
-
-function createDbConnection(){
-    Global $host;
-    Global $dbName, $username, $password;
-    try {
-        $dbConnection = new PDO("mysql:host=$host;dbname=$dbName", $username, $password);
-        $dbConnection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-        return $dbConnection;
-
-    } catch (PDOException $e) {
-        echo "</br>A conexão com o DB falhou: \n" . $e->getMessage() . "\n\n";
-    }
-
-    // finish connection
-    $dbConnection = null;
-}
-
-function executeSelectDbQuery($sql){
-    $STH = createDbConnection()->prepare($sql);
-    $STH->execute();
-    $result = $STH->fetchAll();
-    return $result;
-}
-
-
+echo '<p>Este script criará uma tabela inicial desnormalizada conforme imagem da especificação do projeto;</br>
+    Gerará dados falsos para popular essa tabela, onde um cliente pode ter vários pedidos e um pedido pode ter vários produtos;</br>
+    Depois criará as tabelas com a modelagem normalizada, sendo elas Cliente, Produto, Pedido e PedidoItem;</br>
+    E por fim fará a migração dos dados gerados na tabela inicial para as 4 novas tabelas.</p>';
 
 ///create initial non-normalized model table
 $initialTableName = 'tabela_inicial_pedido';
@@ -233,7 +206,7 @@ foreach (createDbConnection()->query($sqlCheckPedidoTable) as $row) {
             CONSTRAINT `ID_Cliente`
               FOREIGN KEY (`ID_Cliente`)
               REFERENCES `Projeto_PHP_Newtab`.`Cliente` (`ID`)
-              ON DELETE NO ACTION
+              ON DELETE CASCADE
               ON UPDATE NO ACTION)
           COMMENT = 'Tabela para armazenar dados cadastrais de pedidos.';
         ";
@@ -272,12 +245,12 @@ foreach (createDbConnection()->query($sqlCheckPedidoItemTable) as $row) {
             CONSTRAINT `ID_NumeroPedido`
               FOREIGN KEY (`ID_NumeroPedido`)
               REFERENCES `Projeto_PHP_Newtab`.`Pedido` (`NumeroPedido`)
-              ON DELETE NO ACTION
+              ON DELETE CASCADE
               ON UPDATE NO ACTION,
             CONSTRAINT `ID_Produto`
               FOREIGN KEY (`ID_Produto`)
               REFERENCES `Projeto_PHP_Newtab`.`Produto` (`ID`)
-              ON DELETE NO ACTION
+              ON DELETE CASCADE
               ON UPDATE NO ACTION)
           COMMENT = 'Tabela para armazenar detalhes de itens cadastrados por pedido.';
           
@@ -427,4 +400,3 @@ foreach (createDbConnection()->query($sqlSelectInitialTable) as $row) {
 }
 echo 'Migração da base de dados concluída.</br>';
 echo '</br><a href="/">Voltar</a>';
-?>
