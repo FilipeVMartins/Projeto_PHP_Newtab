@@ -6,7 +6,8 @@ require_once 'dbFunctions/dbConnection.php';
 echo '<p>Este script criará uma tabela inicial desnormalizada conforme imagem da especificação do projeto;</br>
     Gerará dados falsos para popular essa tabela, onde um cliente pode ter vários pedidos e um pedido pode ter vários produtos;</br>
     Depois criará as tabelas com a modelagem normalizada, sendo elas Cliente, Produto, Pedido e PedidoItem;</br>
-    E por fim fará a migração dos dados gerados na tabela inicial para as 4 novas tabelas.</p>';
+    E por fim fará a migração dos dados gerados na tabela inicial para as 4 novas tabelas.</br>
+    O banco utilizado no projeto é o Mysql junto com driver php e método pdo</p>';
 
 ///create initial non-normalized model table
 $initialTableName = 'tabela_inicial_pedido';

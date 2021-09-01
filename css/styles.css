@@ -5,10 +5,18 @@
 
 input:read-only {
     background-color: #d3d3d3;
-  }
+}
 
 input:disabled {
 	background-color: #d3d3d3;
+}
+
+body button {
+    border-radius: 3px;
+}
+
+button:hover {
+    background-color: #d3d3d3;
 }
 
 .content {
