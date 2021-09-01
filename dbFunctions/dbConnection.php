@@ -31,22 +31,61 @@ function executeSelectDbQuery($sql){
     return $result;
 }
 
-function executeSelectDbQueryUserInput($sql, $arrayInsertedValues){
-    $sth = createDbConnection()->prepare($sql);
+function executeSelectDbQueryUserInput($tableName){
+    $tableColumns = getTableColumns($tableName);
+
+    //maintain previous request form data
+    $qtd_paginacao = $_GET['qtd_paginacao'];
+    $offset_atual = $_GET['offset_atual'];
+    $ordernar_campo = $_GET['ordernar_campo'];
+    $ordernar_tipo = $_GET['ordernar_tipo'];
+
+    //sql constructor
+    $sqlSearch = "SELECT * FROM Projeto_PHP_Newtab.$tableName WHERE TRUE AND";
+    //fields and values to be searched
+    $arrayInsertedValues = [];
+    
+    //it will search LIKE only on non-empty fields AND on the _GET fields that exists on column names
+    foreach ($_GET as $key => $value){
+        $isTableField = in_array($key, $tableColumns);
+        if ($isTableField && $value){
+            $sqlSearch .= " ($key LIKE :$key) AND";
+            $arrayInsertedValues[$key] = $value;
+        }
+    }
+
+    //remove last 'AND'
+    if(substr($sqlSearch, -3) == "AND"){
+        $sqlSearch = substr($sqlSearch, 0, -3);
+    }
+
+    $sqlSearchNotPaginated = $sqlSearch;
+
+    //add order by
+    $sqlSearch .= "ORDER BY $ordernar_campo $ordernar_tipo ";
+    //add limit and offset
+    $sqlSearch .= "LIMIT $qtd_paginacao OFFSET $offset_atual";
+
+    //execute query
+    $sth = createDbConnection()->prepare($sqlSearch);
+    $sth2 = createDbConnection()->prepare($sqlSearchNotPaginated);
 
     foreach ($arrayInsertedValues as $key => $value){
         $sth->bindValue(":$key", "%{$value}%");
+        $sth2->bindValue(":$key", "%{$value}%");
     }
 
     try {
         $sth->execute();
+        $sth2->execute();
     } catch (PDOException $e){
         //if any error occurs then return empty string
         return [];
     }
     
     $result = $sth->fetchAll();
-    return $result;
+    $rowCountResult = $sth2->rowCount();
+    return ['result' => $result, 'rowCount' => $rowCountResult];
 }
 
 
@@ -189,13 +228,3 @@ function executeInsert ($idKey, $table){
     return executeSelectByID($db->lastInsertId(), $idKey, $table)[0];
 }
 
-
-
-
-
-
-// echo '</br>';
-// print_r(substr($sqlUpdateByID, -5));
-// echo '</br>';
-
-//echo '</br>|'. $id, '|', $idKey,'|', $table,'|</br>';

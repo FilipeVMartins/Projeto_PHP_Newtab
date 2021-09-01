@@ -1,38 +1,6 @@
 <?php
 require_once '../dbFunctions/dbConnection.php';
 
-// $isAjaxRequest = false;
-
-// //IF HTTP_X_REQUESTED_WITH is equal to xmlhttprequest
-// if(
-//     isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
-//     strcasecmp($_SERVER['HTTP_X_REQUESTED_WITH'], 'xmlhttprequest') == 0
-// ){
-//     //Set our $isAjaxRequest to true.
-//     $isAjaxRequest = true;
-// }
-
-// if ($isAjaxRequest){
-//     header('Content-type: application/json');
-
-//     echo "jsonteste";
-//     echo json_encode($_GET);
-//     echo json_encode($POST);
-
-//     /* Receive the RAW post data. */
-//     $content = trim(file_get_contents("php://input"));
-
-//     /* $decoded can be used the same as you would use $_POST in $.ajax */
-//     $decoded = json_decode($content, true);
-
-//     echo json_encode($decoded);
-//     exit;
-// }
-
-
-
-
-
 //default form selects
 $qtd_paginacao = 20;
 $offset_atual = 0;
@@ -50,31 +18,10 @@ if ($_GET){
     $ordernar_campo = $_GET['ordernar_campo'];
     $ordernar_tipo = $_GET['ordernar_tipo'];
 
-    //sql constructor
-    $sqlSearch = "SELECT * FROM Projeto_PHP_Newtab.Cliente WHERE TRUE AND";
-    //fields and values to be searched
-    $arrayInsertedValues = [];
-    
-    //it will search LIKE only on non-empty fields AND on the _GET fields that exists on column names
-    foreach ($_GET as $key => $value){
-        $isTableField = in_array($key, $tableColumns);
-        if ($isTableField && $value){
-            $sqlSearch .= " ($key LIKE :$key) AND";
-            $arrayInsertedValues[$key] = $value;
-        }
-    }
-
-    //remove last 'AND'
-    if(substr($sqlSearch, -3) == "AND"){
-        $sqlSearch = substr($sqlSearch, 0, -3);
-    }
-
-    //add order by
-    $sqlSearch .= "ORDER BY $ordernar_campo $ordernar_tipo ";
-    //add limit and offset
-    $sqlSearch .= "LIMIT $qtd_paginacao OFFSET $offset_atual";
-
-    $searchResult = executeSelectDbQueryUserInput($sqlSearch, $arrayInsertedValues);
+    $result = executeSelectDbQueryUserInput($tableName);
+    $searchResult = $result['result'];
+    $total_registros = $result['rowCount'];
+    $total_pages = ceil($total_registros/$qtd_paginacao);
 
 } elseif ($_POST) {
     //delete by id
@@ -97,8 +44,8 @@ if ($_GET){
     <body>
         <div class="nav-menu">
             <div class="nav-item"><a href="/ScriptDB_CreateTables_FakeData_DataMigration.php">Executar Scripts da Base de Dados</a></div>
-            <div class="nav-item"><a href="Clientes/index.php">Módulo Clientes</a></div>
-            <div class="nav-item"><a href="">Módulo Produtos</a></div>
+            <div class="nav-item"><a href="/Clientes/index.php">Módulo Clientes</a></div>
+            <div class="nav-item"><a href="/Produtos/index.php">Módulo Produtos</a></div>
             <div class="nav-item"><a href="">Módulo Pedidos</a></div>
             <div class="nav-item"><a href="/">Voltar</a></div>
         </div>
@@ -108,7 +55,7 @@ if ($_GET){
 
         <div class="content cliente-content">
             <div>Pesquisar um Cliente</div>
-            <form class="cliente-search-form" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]);?>" method="GET">
+            <form class="cliente-search-form" id="search-form" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]);?>" method="GET">
                 <div class="input-wrapper">
                     <label for="ID">ID do Cliente: </label>
                     <input type="text" value="<?php echo isset($_GET['ID']) ? $_GET['ID'] : '' ?>" id="ID" name="ID" autocomplete="off">
@@ -169,6 +116,28 @@ if ($_GET){
             
 
             <div class="search-result">
+
+            <?php if (isset($total_registros)){ ?>
+            <div class="index-page-pagination" >
+                <div class="pagination-counting" >Exibindo <?php echo ( $offset_atual).'-'.($qtd_paginacao ? ($offset_atual + $qtd_paginacao < $total_registros ? ($offset_atual + $qtd_paginacao) : $total_registros ) : '0').' de '.$total_registros ?> Relatórios, em <?php echo $total_pages?> Páginas.</div>
+
+                <div class="pagination-nav <?php echo ($total_registros == 0 ? 'hide' : '');?>" >
+                    Ir à página: 
+                    <button type="button" value="0" onclick="changeOffset(event)" class="<?php echo ($offset_atual == 0 ? 'first' : ''); ?>" ><< Primeiro</button>
+                    <button type="button" value="<?php echo ($offset_atual-$qtd_paginacao); ?>" onclick="changeOffset(event)" class="<?php echo ($offset_atual == 0 ? 'first' : ''); ?>" >< Anterior</button>
+
+                    <?php
+                    for ($x = 0; $x < $total_pages; $x++) {
+                        echo '<button type="button" value="'.($x*$qtd_paginacao)  .'" onclick="changeOffset(event)" class="'.($x*$qtd_paginacao == $offset_atual ? 'selected':'').'" >'.($x+1).'</button>';
+                    }
+                    ?>
+
+                    <button type="button" value="<?php echo ($offset_atual+$qtd_paginacao); ?>" onclick="changeOffset(event)" class="<?php echo (ceil($offset_atual/$qtd_paginacao)+1 == $total_pages ? 'last' : ''); ?>" >Próximo ></button>
+                    <button type="button" value="<?php echo (($total_pages-1)*$qtd_paginacao); ?>" onclick="changeOffset(event)" class="<?php echo (ceil($offset_atual/$qtd_paginacao)+1 == $total_pages ? 'last' : ''); ?>" >Último >></button> 
+                </div>
+            </div>
+            <?php } ?>
+
             <?php
             if ($_GET){
                 if($searchResult){
@@ -216,15 +185,6 @@ if ($_GET){
             ?>
             </div>
         </div>
-
-
-
-
-
-
-
-
-
         <script src="/js/scripts.js"></script>
     </body>
 </html>
