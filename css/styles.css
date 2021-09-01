@@ -1,0 +1,49 @@
+.selected {
+    background-color: #808080;
+    color: #ffffff;
+}
+
+input:read-only {
+    background-color: #d3d3d3;
+  }
+
+input:disabled {
+	background-color: #d3d3d3;
+}
+
+.content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    
+}
+
+.search-result {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-top: 20px;
+    padding: 20px 4%;
+}
+
+.index-page-pagination {
+    width: 100%;
+}
+
+.search-result-form {
+    width: 100%;
+
+}
+
+.input-wrapper select#ordernar_campo {
+        margin-top: 20px;
+}
+
+.msgs {
+    margin-top: 20px;
+}

@@ -39,7 +39,7 @@ if ($_GET){
         <meta charset="utf-8">
         <title>Projeto PHP Newtab Academy</title>
         <meta name="description" content="Projeto PHP Newtab Academy">
-        <link rel="stylesheet" href="styles.css">
+        <link rel="stylesheet" href="/css/styles.css">
     </head>
     <body>
         <div class="nav-menu">
@@ -109,7 +109,7 @@ if ($_GET){
 
                 <input type="hidden" name="offset_atual" value="0"></input>
 
-                <input type="submit" value="Pesquisar" />
+                <button type="submit" title="Pesquisar Cliente" >Pesquisar Cliente</button>
                 <button title="Cadastrar Novo Cliente" value="0" name="new" formmethod="get" formaction="/Clientes/FormCliente.php">Cadastrar Novo Cliente</button>
             </form>
 
@@ -117,74 +117,78 @@ if ($_GET){
 
             <div class="search-result">
 
-            <?php if (isset($total_registros)){ ?>
-            <div class="index-page-pagination" >
-                <div class="pagination-counting" >Exibindo <?php echo ( $offset_atual).'-'.($qtd_paginacao ? ($offset_atual + $qtd_paginacao < $total_registros ? ($offset_atual + $qtd_paginacao) : $total_registros ) : '0').' de '.$total_registros ?> Relatórios, em <?php echo $total_pages?> Páginas.</div>
+                <?php if (isset($total_registros)){ ?>
+                <div class="index-page-pagination" >
+                    <div class="pagination-counting" >Exibindo <?php echo ( $offset_atual).'-'.($qtd_paginacao ? ($offset_atual + $qtd_paginacao < $total_registros ? ($offset_atual + $qtd_paginacao) : $total_registros ) : '0').' de '.$total_registros ?> Clientes, em <?php echo $total_pages?> Páginas.</div>
 
-                <div class="pagination-nav <?php echo ($total_registros == 0 ? 'hide' : '');?>" >
-                    Ir à página: 
-                    <button type="button" value="0" onclick="changeOffset(event)" class="<?php echo ($offset_atual == 0 ? 'first' : ''); ?>" ><< Primeiro</button>
-                    <button type="button" value="<?php echo ($offset_atual-$qtd_paginacao); ?>" onclick="changeOffset(event)" class="<?php echo ($offset_atual == 0 ? 'first' : ''); ?>" >< Anterior</button>
+                    <div class="pagination-nav <?php echo ($total_registros == 0 ? 'hide' : '');?>" >
+                        Ir à página: 
+                        <button type="button" value="0" onclick="changeOffset(event)" class="<?php echo ($offset_atual == 0 ? 'first' : ''); ?>" ><< Primeiro</button>
+                        <button type="button" value="<?php echo ($offset_atual-$qtd_paginacao); ?>" onclick="changeOffset(event)" class="<?php echo ($offset_atual == 0 ? 'first' : ''); ?>" >< Anterior</button>
 
-                    <?php
-                    for ($x = 0; $x < $total_pages; $x++) {
-                        echo '<button type="button" value="'.($x*$qtd_paginacao)  .'" onclick="changeOffset(event)" class="'.($x*$qtd_paginacao == $offset_atual ? 'selected':'').'" >'.($x+1).'</button>';
-                    }
-                    ?>
-
-                    <button type="button" value="<?php echo ($offset_atual+$qtd_paginacao); ?>" onclick="changeOffset(event)" class="<?php echo (ceil($offset_atual/$qtd_paginacao)+1 == $total_pages ? 'last' : ''); ?>" >Próximo ></button>
-                    <button type="button" value="<?php echo (($total_pages-1)*$qtd_paginacao); ?>" onclick="changeOffset(event)" class="<?php echo (ceil($offset_atual/$qtd_paginacao)+1 == $total_pages ? 'last' : ''); ?>" >Último >></button> 
-                </div>
-            </div>
-            <?php } ?>
-
-            <?php
-            if ($_GET){
-                if($searchResult){
-                    ?>
-                    <form>
-                    <table>
-                        <tr> <!-- table head -->
-                            <?php
-                            foreach ($searchResult[0] as $key => $value){
-                                if(!is_numeric($key)){
-                                    echo "<th>$key</th>";
-                                }
-                            }
-                            ?>
-                            <th>Ações</th>
-                        </tr>
                         <?php
-                        foreach ($searchResult as $keyRow => $row){
-                            ?>
-                            <tr> <!-- table body -->
+                        for ($x = 0; $x < $total_pages; $x++) {
+                            echo '<button type="button" value="'.($x*$qtd_paginacao)  .'" onclick="changeOffset(event)" class="'.($x*$qtd_paginacao == $offset_atual ? 'selected':'').'" >'.($x+1).'</button>';
+                        }
+                        ?>
+
+                        <button type="button" value="<?php echo ($offset_atual+$qtd_paginacao); ?>" onclick="changeOffset(event)" class="<?php echo (ceil($offset_atual/$qtd_paginacao)+1 == $total_pages ? 'last' : ''); ?>" >Próximo ></button>
+                        <button type="button" value="<?php echo (($total_pages-1)*$qtd_paginacao); ?>" onclick="changeOffset(event)" class="<?php echo (ceil($offset_atual/$qtd_paginacao)+1 == $total_pages ? 'last' : ''); ?>" >Último >></button> 
+                    </div>
+                </div>
+                <?php } ?>
+                    
+
+                <?php
+                if ($_GET){
+                    if($searchResult){
+                        ?>
+                        <form class="search-result-form">
+                        <table class="table">
+                            <tr> <!-- table head -->
                                 <?php
-                                foreach ($row as $keyField => $field){
-                                    if(!is_numeric($keyField)){
-                                        echo "<td>$field</td>";
+                                foreach ($searchResult[0] as $key => $value){
+                                    if(!is_numeric($key)){
+                                        echo "<th>$key</th>";
                                     }
                                 }
                                 ?>
-                                <td><button title="Editar Cliente" value="<?php echo $row['ID']?>" name="edit" formmethod="get" formaction="/Clientes/FormCliente.php">✏️</button></td>
-                                <td><button title="Excluir Cliente" type="submit" alt="Excluir Cliente" value="<?php echo $row['ID']?>" name="delete" formmethod="post" formaction="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]);?>" >❌</button></td>
+                                <th>Ações</th>
                             </tr>
                             <?php
-                        }
-                        ?>
-                    </table>
-                    </form>
-                    <?php
+                            foreach ($searchResult as $keyRow => $row){
+                                ?>
+                                <tr> <!-- table body -->
+                                    <?php
+                                    foreach ($row as $keyField => $field){
+                                        if(!is_numeric($keyField)){
+                                            echo "<td>$field</td>";
+                                        }
+                                    }
+                                    ?>
+                                    <td><button title="Editar Cliente" value="<?php echo $row['ID']?>" name="edit" formmethod="get" formaction="/Clientes/FormCliente.php">✏️</button></td>
+                                    <td><button title="Excluir Cliente" type="submit" alt="Excluir Cliente" value="<?php echo $row['ID']?>" name="delete" formmethod="post" formaction="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]);?>" >❌</button></td>
+                                </tr>
+                                <?php
+                            }
+                            ?>
+                        </table>
+                        </form>
+                        <?php
+                    } else {
+                        echo '<p>Nenhum resultado encontrado.</p>';
+                    }
                 } else {
-                    echo '<p>Nenhum resultado encontrado.</p>';
+                    if (isset($resultDelete)){
+                        echo "<p>$resultDelete</p>";
+                    }
                 }
-            } else {
-                if (isset($resultDelete)){
-                    echo "<p>$resultDelete</p>";
-                }
-            }
-            ?>
+                ?>
             </div>
         </div>
         <script src="/js/scripts.js"></script>
+        <!-- bootstrap 5-->
+        <link href="/vendor/twbs/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+        <script src="/vendor/twbs/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     </body>
 </html>

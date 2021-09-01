@@ -14,5 +14,8 @@
             <div class="nav-item"><a href="<?php echo '/Pedidos/index.php' ?>">Módulo Pedidos</a></div>
         </div>
         <script src="js/scripts.js"></script>
+        <!-- bootstrap 5-->
+        <link href="/vendor/twbs/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+        <script src="/vendor/twbs/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     </body>
 </html>

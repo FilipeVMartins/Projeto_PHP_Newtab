@@ -54,7 +54,7 @@ if ($_GET){
         <meta charset="utf-8">
         <title>Projeto PHP Newtab Academy</title>
         <meta name="description" content="Projeto PHP Newtab Academy">
-        <link rel="stylesheet" href="styles.css">
+        <link rel="stylesheet" href="/css/styles.css">
     </head>
     <body>
         <div class="nav-menu">
@@ -64,14 +64,6 @@ if ($_GET){
 
         <div class="content cliente-content">
             <div><?php echo $form == 'new' ? 'Cadastrar um Cliente' : 'Alterar um Cliente' ?></div>
-            <div class="success">
-                <div class="successful">
-                    <?php echo isset($result['success']) ? $result['success'] : '' ?>
-                </div>
-                <div class="errors">
-                    <?php echo isset($result['errorInfo']) ? $result['errorInfo'][2] : '' ?>
-                </div>
-            </div>
 
             <form class="cliente-search-form" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]);?>" method="POST">
                 <div class="input-wrapper">
@@ -94,10 +86,26 @@ if ($_GET){
                     <input type="text" value="<?php echo isset($result['Email']) ? $result['Email'] : '' ?>" id="Email" name="Email" autocomplete="off">
                 </div>
 
-                <button title="Cadastrar" value="1" name="<?php echo $form == 'new' ? 'savenew' : 'save' ?>" formmethod="post" formaction="/Clientes/FormCliente.php"><?php echo $form == 'new' ? 'Salvar Novo Cliente' : 'Salvar Alterações' ?></button>
+                <button title="<?php echo $form == 'new' ? 'Cadastrar' : 'Alterar' ?>" value="1" name="<?php echo $form == 'new' ? 'savenew' : 'save' ?>" formmethod="post" formaction="/Clientes/FormCliente.php"><?php echo $form == 'new' ? 'Salvar Novo Cliente' : 'Salvar Alterações' ?></button>
+
+                <?php if($form == 'edit'){?>
+                <button title="Cadastrar Outro Cliente" value="0" name="new" formmethod="get" formaction="/Clientes/FormCliente.php">Cadastrar Novo Cliente</button>
+                <?php } ?>
             </form>
+
+            <div class="msgs">
+                <div class="successful">
+                    <?php echo isset($result['success']) ? $result['success'] : '' ?>
+                </div>
+                <div class="errors">
+                    <?php echo isset($result['errorInfo']) ? $result['errorInfo'][2] : '' ?>
+                </div>
+            </div>
         </div>
 
         <script src="/js/scripts.js"></script>
+        <!-- bootstrap 5-->
+        <link href="/vendor/twbs/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+        <script src="/vendor/twbs/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     </body>
 </html>
