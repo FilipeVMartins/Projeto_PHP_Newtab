@@ -7,7 +7,7 @@ echo '<p>Este script criará uma tabela inicial desnormalizada conforme imagem d
     Gerará dados falsos para popular essa tabela, onde um cliente pode ter vários pedidos e um pedido pode ter vários produtos;</br>
     Depois criará as tabelas com a modelagem normalizada, sendo elas Cliente, Produto, Pedido e PedidoItem;</br>
     E por fim fará a migração dos dados gerados na tabela inicial para as 4 novas tabelas.</br>
-    O banco utilizado no projeto é o Mysql junto com driver php e método pdo</p>';
+    O banco utilizado no projeto é o Mysql junto com driver php e método PDO.</p>';
 
 ///create initial non-normalized model table
 $initialTableName = 'tabela_inicial_pedido';
@@ -200,7 +200,6 @@ foreach (createDbConnection()->query($sqlCheckPedidoTable) as $row) {
             `NumeroPedido` INT NOT NULL AUTO_INCREMENT,
             `ID_Cliente` INT NOT NULL,
             `DtPedido` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            `Pedidocol` VARCHAR(45) NULL,
             PRIMARY KEY (`NumeroPedido`),
             UNIQUE INDEX `idnew_table_UNIQUE` (`NumeroPedido` ASC) VISIBLE,
             INDEX `ID_idx` (`ID_Cliente` ASC) VISIBLE,

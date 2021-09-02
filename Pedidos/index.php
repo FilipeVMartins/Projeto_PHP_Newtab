@@ -7,7 +7,8 @@ $offset_atual = 0;
 $ordernar_campo = 'ID';
 $ordernar_tipo = 'ASC';
 
-$tableName = "Produto";
+$tableName = "Pedido";
+$tablePK = "NumeroPedido";
 //existing table columns
 $tableColumns = getTableColumns($tableName);
 
@@ -26,7 +27,7 @@ if ($_GET){
 } elseif ($_POST) {
     //delete by id
     if($_POST['delete']){
-        $resultDelete = executeDeleteDbQueryUserInput($tableName, $_POST['delete']);
+        $resultDelete = executeDeleteDbQueryUserInput($tableName, $_POST['delete'], $tablePK);
     }
 }
 
@@ -53,28 +54,56 @@ if ($_GET){
 
 
 
-        <div class="content produto-content">
-            <div>Pesquisar um Produto</div>
-            <form class="produto-search-form" id="search-form" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]);?>" method="GET">
+        <div class="content pedido-content">
+            <div>Pesquisar um Pedido</div>
+            <form class="pedido-search-form" id="search-form" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]);?>" method="GET">
                 <div class="input-wrapper">
-                    <label for="ID">ID do Produto: </label>
-                    <input type="text" value="<?php echo isset($_GET['ID']) ? $_GET['ID'] : '' ?>" id="ID" name="ID" autocomplete="off">
+                    <label for="ID">Número do Pedido: </label>
+                    <input type="text" value="<?php echo isset($_GET['NumeroPedido']) ? $_GET['NumeroPedido'] : '' ?>" id="NumeroPedido" name="NumeroPedido" autocomplete="off">
                 </div>
 
                 <div class="input-wrapper">
-                    <label for="NomeProduto">Nome do Produto: </label>
-                    <input type="text" value="<?php echo isset($_GET['NomeProduto']) ? $_GET['NomeProduto'] : '' ?>" id="NomeProduto" name="NomeProduto" autocomplete="off">
+                    <label for="ID_Cliente">ID do Cliente: </label>
+                    <input type="text" value="<?php echo isset($_GET['ID_Cliente']) ? $_GET['ID_Cliente'] : '' ?>" id="ID_Cliente" name="ID_Cliente" autocomplete="off">
                 </div>
 
                 <div class="input-wrapper">
-                    <label for="CodBarras">Código de Barras: </label>
-                    <input type="text" value="<?php echo isset($_GET['CodBarras']) ? $_GET['CodBarras'] : '' ?>" id="CodBarras" name="CodBarras" maxlength="20" autocomplete="off">
+                    <label for="NomeCliente">Nome do Cliente: </label>
+                    <input type="text" value="<?php echo isset($_GET['NomeCliente']) ? $_GET['NomeCliente'] : '' ?>" id="NomeCliente" name="NomeCliente" autocomplete="off">
                 </div>
 
                 <div class="input-wrapper">
-                    <label for="ValorUnitario">Valor Unitário: </label>
-                    <input type="text" value="<?php echo isset($_GET['ValorUnitario']) ? $_GET['ValorUnitario'] : '' ?>" id="ValorUnitario" name="ValorUnitario" autocomplete="off">
+                    <label for="CPF">CPF</label>
+                    <input type="text" value="<?php echo isset($_GET['CPF']) ? $_GET['CPF'] : '' ?>" id="CPF" name="CPF" maxlength="11" autocomplete="off">
                 </div>
+
+                <div class="input-wrapper">
+                    <label for="Email">E-mail: </label>
+                    <input type="text" value="<?php echo isset($_GET['Email']) ? $_GET['Email'] : '' ?>" id="Email" name="Email" autocomplete="off">
+                </div>
+
+                <div class="input-wrapper">
+                    <label for="dtIni">Data Mínima: </label>
+                    <input type="date" value="<?php echo isset($_GET['dtMin']) ? $_GET['dtMin'] : '' ?>" id="dtMin" name="dtMin" autocomplete="off" onchange="changeDtPedido(event)">
+                </div>
+
+                <div class="input-wrapper">
+                    <label for="dtMax">Data Máxima: </label>
+                    <input type="date" value="<?php echo isset($_GET['dtMax']) ? $_GET['dtMax'] : '' ?>" id="dtMax" name="dtMax" autocomplete="off" onchange="changeDtPedido(event)">
+                </div>
+
+                <div class="input-wrapper">
+                    <input type="hidden" value="<?php echo isset($_GET['DtPedido']) ? $_GET['DtPedido'] : '' ?>" id="DtPedido" name="DtPedido" autocomplete="off">
+                </div>
+
+
+
+
+
+
+
+
+
 
 
                 <div class="input-wrapper">
@@ -99,7 +128,7 @@ if ($_GET){
                 </div>
 
                 <div class="input-wrapper">
-                    <label for="qtd_paginacao">Produtos por Página:</label>
+                    <label for="qtd_paginacao">Pedidos por Página:</label>
                     <select name="qtd_paginacao" id="qtd_paginacao">
                         <option value="10" <?php echo (10==$qtd_paginacao) ? 'selected' : ''?> >10</option>
                         <option value="20" <?php echo (20==$qtd_paginacao) ? 'selected' : ''?> >20</option>
@@ -109,24 +138,21 @@ if ($_GET){
 
                 <input type="hidden" name="offset_atual" value="0"></input>
 
-                <button type="submit" title="Pesquisar Produto" >Pesquisar Produto</button>
-                <button title="Cadastrar Novo Produto" value="0" name="new" formmethod="get" formaction="/Produtos/FormProduto.php">Cadastrar Novo Produto</button>
+                <button type="submit" title="Pesquisar Pedido" >Pesquisar Pedido</button>
+                <button title="Cadastrar Novo Pedido" value="0" name="new" formmethod="get" formaction="/Pedidos/FormPedido.php">Cadastrar Novo Pedido</button>
             </form>
 
             
 
             <div class="search-result">
-
-                
-                    
-
                 <?php
                 if ($_GET){
                     if($searchResult){
                         ?>
+
                         <?php if (isset($total_registros)){ ?>
                         <div class="index-page-pagination" >
-                            <div class="pagination-counting" >Exibindo <?php echo ( $offset_atual).'-'.($qtd_paginacao ? ($offset_atual + $qtd_paginacao < $total_registros ? ($offset_atual + $qtd_paginacao) : $total_registros ) : '0').' de '.$total_registros ?> Produtos, em <?php echo $total_pages?> Páginas.</div>
+                            <div class="pagination-counting" >Exibindo <?php echo ( $offset_atual).'-'.($qtd_paginacao ? ($offset_atual + $qtd_paginacao < $total_registros ? ($offset_atual + $qtd_paginacao) : $total_registros ) : '0').' de '.$total_registros ?> Pedidos, em <?php echo $total_pages?> Páginas.</div>
 
                             <div class="pagination-nav <?php echo ($total_registros == 0 ? 'hide' : '');?>" >
                                 Ir à página: 
@@ -168,8 +194,8 @@ if ($_GET){
                                         }
                                     }
                                     ?>
-                                    <td><button title="Editar Produto" value="<?php echo $row['ID']?>" name="edit" formmethod="get" formaction="/Produtos/FormProduto.php">✏️</button></td>
-                                    <td><button title="Excluir Produto" type="submit" alt="Excluir Produto" value="<?php echo $row['ID']?>" name="delete" formmethod="post" formaction="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]);?>" >❌</button></td>
+                                    <td><button title="Editar Pedido" value="<?php echo $row[$tablePK]?>" name="edit" formmethod="get" formaction="/Pedidos/FormPedido.php">✏️</button></td>
+                                    <td><button title="Excluir Pedido" type="submit" alt="Excluir Pedido" value="<?php echo $row[$tablePK]?>" name="delete" formmethod="post" formaction="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]);?>" >❌</button></td>
                                 </tr>
                                 <?php
                             }
@@ -192,5 +218,8 @@ if ($_GET){
         <!-- bootstrap 5-->
         <link href="/vendor/twbs/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
         <script src="/vendor/twbs/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
+
+        
     </body>
 </html>

@@ -4,12 +4,13 @@ require_once '../dbFunctions/dbConnection.php';
 //print_r($_POST);
 //print_r($_GET);
 $tableName = 'Produto';
+$tablePK = 'ID';
 $form = 'new';
 if ($_GET){
     
     if (isset($_GET['edit'])){
         $form = 'edit';
-        $result = executeSelectByID($_GET['edit'], 'ID', $tableName)[0];
+        $result = executeSelectByID($_GET['edit'], $tablePK, $tableName)[0];
     }
 
 } elseif ($_POST) {
@@ -18,7 +19,7 @@ if ($_GET){
     //update
     if (isset($_POST['save'])){
         //after save, return $result if successful
-        $result = executeUpdateByID($_POST['ID'], 'ID', $tableName);
+        $result = executeUpdateByID($_POST[$tablePK], $tablePK, $tableName);
 
         //se falhar
         if (isset($result['error']) == True){
@@ -31,7 +32,7 @@ if ($_GET){
     //insert
     } elseif (isset($_POST['savenew'])){
 
-        $result = executeInsert('ID', $tableName);
+        $result = executeInsert($tablePK, $tableName);
         $form = 'edit';
 
         //se falhar

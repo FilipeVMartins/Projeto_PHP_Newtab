@@ -46,7 +46,7 @@ if ($_GET){
             <div class="nav-item"><a href="/ScriptDB_CreateTables_FakeData_DataMigration.php">Executar Scripts da Base de Dados</a></div>
             <div class="nav-item"><a href="/Clientes/index.php">Módulo Clientes</a></div>
             <div class="nav-item"><a href="/Produtos/index.php">Módulo Produtos</a></div>
-            <div class="nav-item"><a href="">Módulo Pedidos</a></div>
+            <div class="nav-item"><a href="/Pedidos/index.php">Módulo Pedidos</a></div>
             <div class="nav-item"><a href="/">Voltar</a></div>
         </div>
 
@@ -116,33 +116,32 @@ if ($_GET){
             
 
             <div class="search-result">
-
-                <?php if (isset($total_registros)){ ?>
-                <div class="index-page-pagination" >
-                    <div class="pagination-counting" >Exibindo <?php echo ( $offset_atual).'-'.($qtd_paginacao ? ($offset_atual + $qtd_paginacao < $total_registros ? ($offset_atual + $qtd_paginacao) : $total_registros ) : '0').' de '.$total_registros ?> Clientes, em <?php echo $total_pages?> Páginas.</div>
-
-                    <div class="pagination-nav <?php echo ($total_registros == 0 ? 'hide' : '');?>" >
-                        Ir à página: 
-                        <button type="button" value="0" onclick="changeOffset(event)" class="<?php echo ($offset_atual == 0 ? 'first' : ''); ?>" ><< Primeiro</button>
-                        <button type="button" value="<?php echo ($offset_atual-$qtd_paginacao); ?>" onclick="changeOffset(event)" class="<?php echo ($offset_atual == 0 ? 'first' : ''); ?>" >< Anterior</button>
-
-                        <?php
-                        for ($x = 0; $x < $total_pages; $x++) {
-                            echo '<button type="button" value="'.($x*$qtd_paginacao)  .'" onclick="changeOffset(event)" class="'.($x*$qtd_paginacao == $offset_atual ? 'selected':'').'" >'.($x+1).'</button>';
-                        }
-                        ?>
-
-                        <button type="button" value="<?php echo ($offset_atual+$qtd_paginacao); ?>" onclick="changeOffset(event)" class="<?php echo (ceil($offset_atual/$qtd_paginacao)+1 == $total_pages ? 'last' : ''); ?>" >Próximo ></button>
-                        <button type="button" value="<?php echo (($total_pages-1)*$qtd_paginacao); ?>" onclick="changeOffset(event)" class="<?php echo (ceil($offset_atual/$qtd_paginacao)+1 == $total_pages ? 'last' : ''); ?>" >Último >></button> 
-                    </div>
-                </div>
-                <?php } ?>
-                    
-
                 <?php
                 if ($_GET){
                     if($searchResult){
                         ?>
+
+                        <?php if (isset($total_registros)){ ?>
+                        <div class="index-page-pagination" >
+                            <div class="pagination-counting" >Exibindo <?php echo ( $offset_atual).'-'.($qtd_paginacao ? ($offset_atual + $qtd_paginacao < $total_registros ? ($offset_atual + $qtd_paginacao) : $total_registros ) : '0').' de '.$total_registros ?> Clientes, em <?php echo $total_pages?> Páginas.</div>
+
+                            <div class="pagination-nav <?php echo ($total_registros == 0 ? 'hide' : '');?>" >
+                                Ir à página: 
+                                <button type="button" value="0" onclick="changeOffset(event)" class="<?php echo ($offset_atual == 0 ? 'first' : ''); ?>" ><< Primeiro</button>
+                                <button type="button" value="<?php echo ($offset_atual-$qtd_paginacao); ?>" onclick="changeOffset(event)" class="<?php echo ($offset_atual == 0 ? 'first' : ''); ?>" >< Anterior</button>
+
+                                <?php
+                                for ($x = 0; $x < $total_pages; $x++) {
+                                    echo '<button type="button" value="'.($x*$qtd_paginacao)  .'" onclick="changeOffset(event)" class="'.($x*$qtd_paginacao == $offset_atual ? 'selected':'').'" >'.($x+1).'</button>';
+                                }
+                                ?>
+
+                                <button type="button" value="<?php echo ($offset_atual+$qtd_paginacao); ?>" onclick="changeOffset(event)" class="<?php echo (ceil($offset_atual/$qtd_paginacao)+1 == $total_pages ? 'last' : ''); ?>" >Próximo ></button>
+                                <button type="button" value="<?php echo (($total_pages-1)*$qtd_paginacao); ?>" onclick="changeOffset(event)" class="<?php echo (ceil($offset_atual/$qtd_paginacao)+1 == $total_pages ? 'last' : ''); ?>" >Último >></button> 
+                            </div>
+                        </div>
+                        <?php } ?>
+
                         <form class="search-result-form">
                         <table class="table">
                             <tr> <!-- table head -->

@@ -33,15 +33,34 @@ function executeSelectDbQuery($sql){
 
 function executeSelectDbQueryUserInput($tableName){
     $tableColumns = getTableColumns($tableName);
+    $ColumnDataTypes = getTableColumnDataTypes($tableName);
+    $foreingKeys = getTableFKs($tableName);
+    
 
-    //maintain previous request form data
     $qtd_paginacao = $_GET['qtd_paginacao'];
     $offset_atual = $_GET['offset_atual'];
     $ordernar_campo = $_GET['ordernar_campo'];
     $ordernar_tipo = $_GET['ordernar_tipo'];
 
     //sql constructor
-    $sqlSearch = "SELECT * FROM Projeto_PHP_Newtab.$tableName WHERE TRUE AND";
+    $sqlSearch = "SELECT * FROM Projeto_PHP_Newtab.$tableName ";
+
+    //if there is any FK
+    if(count($foreingKeys) > 0){
+        //build the joins
+        foreach ($foreingKeys as $key => $field){
+            $sqlSearch .= "INNER JOIN ".$field['REFERENCED_TABLE_NAME']." ON ".$field['COLUMN_NAME']." = ".$field['REFERENCED_COLUMN_NAME']." ";
+            $tableColumns = array_merge($tableColumns, getTableColumns($field['REFERENCED_TABLE_NAME']));
+            //remove the PK field select from foreing table join
+            unset($tableColumns[array_search($field['REFERENCED_COLUMN_NAME'], $tableColumns)]);
+            
+            //specify all fields except the foreing PK field
+            $selectForeingFields = join(", ", $tableColumns);
+            $sqlSearch = str_replace("*","$selectForeingFields", $sqlSearch);
+        }
+    }
+
+    $sqlSearch .= "WHERE TRUE AND";
     //fields and values to be searched
     $arrayInsertedValues = [];
     
@@ -49,8 +68,23 @@ function executeSelectDbQueryUserInput($tableName){
     foreach ($_GET as $key => $value){
         $isTableField = in_array($key, $tableColumns);
         if ($isTableField && $value){
-            $sqlSearch .= " ($key LIKE :$key) AND";
-            $arrayInsertedValues[$key] = $value;
+
+            //specific treatment for datetime searches, which includes a period
+            if (checkColumnDataType($key, $ColumnDataTypes) == 'datetime'){
+                //if the $key DtPedido is set, then at least one of the get fields dtMin or dtMin is also set
+                if(isset($_GET['dtMin']) && ($_GET['dtMin'] != '')){
+                    $sqlSearch .= " ($key >= :dtMin) AND";//caso falhe coloque uma string em volta do ':dt'
+                    $arrayInsertedValues['dtMin'] = $_GET['dtMin'];
+                }
+                if(isset($_GET['dtMax']) && ($_GET['dtMax'] != '')){
+                    $sqlSearch .= " ($key <= :dtMax) AND";
+                    $arrayInsertedValues['dtMax'] = $_GET['dtMax'];
+                }
+
+            } else {
+                $sqlSearch .= " ($key LIKE :$key) AND";
+                $arrayInsertedValues[$key] = $value;
+            }
         }
     }
 
@@ -71,8 +105,16 @@ function executeSelectDbQueryUserInput($tableName){
     $sth2 = createDbConnection()->prepare($sqlSearchNotPaginated);
 
     foreach ($arrayInsertedValues as $key => $value){
-        $sth->bindValue(":$key", "%{$value}%");
-        $sth2->bindValue(":$key", "%{$value}%");
+        //special treatment for datetimesearch
+        if ($key == 'dtMax' || $key == 'dtMin'){
+            $sth->bindValue(":$key", "{$value}");
+            $sth2->bindValue(":$key", "{$value}");
+
+        // others fields using like search
+        } else {
+            $sth->bindValue(":$key", "%{$value}%");
+            $sth2->bindValue(":$key", "%{$value}%");
+        }
     }
 
     try {
@@ -85,6 +127,9 @@ function executeSelectDbQueryUserInput($tableName){
     
     $result = $sth->fetchAll();
     $rowCountResult = $sth2->rowCount();
+
+    
+    
     return ['result' => $result, 'rowCount' => $rowCountResult];
 }
 
@@ -100,9 +145,9 @@ function getTableColumns($tableName){
     return $result;     
 }
 
-function executeDeleteDbQueryUserInput($tableName, $id){
+function executeDeleteDbQueryUserInput($tableName, $id, $idKey='ID'){
     
-    $sqlDelete = "DELETE FROM Projeto_PHP_Newtab.$tableName WHERE ID = :id";
+    $sqlDelete = "DELETE FROM Projeto_PHP_Newtab.$tableName WHERE $idKey = :id";
     $sth = createDbConnection()->prepare($sqlDelete);
     $sth->bindValue(":id", "$id");
 
@@ -224,7 +269,119 @@ function executeInsert ($idKey, $table){
         return ['error'=>True, 'errorInfo' => $e->errorInfo];
     }
 
-    //return updated registry
+    //return inserted registry
     return executeSelectByID($db->lastInsertId(), $idKey, $table)[0];
 }
+
+function getTableFKs($tableName){
+    $sql = "SELECT
+        TABLE_NAME,
+        COLUMN_NAME,
+        CONSTRAINT_NAME,
+        REFERENCED_TABLE_NAME,
+        REFERENCED_COLUMN_NAME
+    FROM
+        INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+    WHERE
+        REFERENCED_TABLE_SCHEMA = 'Projeto_PHP_Newtab'
+        AND TABLE_NAME = '$tableName'";
+
+    $sth = createDbConnection()->prepare($sql);
+
+    //execute query
+    try {
+        $sth->execute();
+    } catch (PDOException $e){
+        //if any error occurs then return it
+        return ['error'=>True, 'errorInfo' => $e->errorInfo];
+    }
+    
+    $foreingKeys = $sth->fetchAll();
+    return $foreingKeys;
+}
+
+function getTableColumnDataTypes($tableName){
+    $sql = "SELECT COLUMN_NAME, DATA_TYPE
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE table_schema = 'Projeto_PHP_Newtab' and table_name = '$tableName'";
+
+    $sth = createDbConnection()->prepare($sql);
+
+    //execute query
+    try {
+        $sth->execute();
+    } catch (PDOException $e){
+        //if any error occurs then return it
+        return ['error'=>True, 'errorInfo' => $e->errorInfo];
+    }
+    
+    $ColumnDataTypes = $sth->fetchAll();
+    return $ColumnDataTypes;
+}
+
+function checkColumnDataType($columnName, $ColumnDataTypes){
+    foreach($ColumnDataTypes as $key => $Column) {
+        if($Column['COLUMN_NAME'] == $columnName) return $Column['DATA_TYPE'];
+    }
+    return False;
+}
+
+
+function findClientebyCPF(){
+    $sql = "SELECT * FROM `Projeto_PHP_Newtab`.`Cliente` WHERE CPF = :CPF";
+
+    //prepare and bind values
+    $db= createDbConnection();
+    $sth = $db->prepare($sql);
+    $sth->bindValue(":CPF", $_POST['CPF']);
+        
+    //execute query
+    try {
+        $sth->execute();
+    } catch (PDOException $e){
+        //if any error occurs then return it
+        return ['error'=>True, 'errorInfo' => $e->errorInfo];
+    }
+
+    $result = $sth->fetchAll();
+    //return inserted registry
+    return $result[0];
+}
+
+function executeInsertPedido(){
+    $table = 'Pedido';
+    $idKey = 'NumeroPedido';
+    $cliente = findClientebyCPF();
+
+    //sql build
+    $sqlInsert = "INSERT INTO `Projeto_PHP_Newtab`.`Pedido` (`ID_Cliente`)
+                    VALUES (:idcliente)";
+
+    //prepare and bind values
+    $db= createDbConnection();
+    $sth = $db->prepare($sqlInsert);
+    $sth->bindValue(":idcliente", $cliente['ID']);
+        
+    //execute query
+    try {
+        $sth->execute();
+    } catch (PDOException $e){
+        //if any error occurs then return it
+        return ['error'=>True, 'errorInfo' => $e->errorInfo];
+    }
+
+    //return inserted registry
+    return executeSelectByID($db->lastInsertId(), $idKey, $table)[0];
+}
+
+
+
+
+
+
+
+
+
+
+
 
