@@ -37,10 +37,12 @@ function executeSelectDbQueryUserInput($tableName){
     $foreingKeys = getTableFKs($tableName);
     
 
-    $qtd_paginacao = $_GET['qtd_paginacao'];
-    $offset_atual = $_GET['offset_atual'];
-    $ordernar_campo = $_GET['ordernar_campo'];
-    $ordernar_tipo = $_GET['ordernar_tipo'];
+
+    $qtd_paginacao = isset($_GET['qtd_paginacao']) ? $_GET['qtd_paginacao'] : 20;
+    $offset_atual = isset($_GET['offset_atual']) ? $_GET['offset_atual'] : 0;
+    $ordernar_campo = isset($_GET['ordernar_campo']) ? $_GET['ordernar_campo'] : 'ID';
+    $ordernar_tipo = isset($_GET['ordernar_tipo']) ? $_GET['ordernar_tipo'] : 'ASC';
+
 
     //sql constructor
     $sqlSearch = "SELECT * FROM Projeto_PHP_Newtab.$tableName ";
@@ -260,6 +262,7 @@ function executeInsert ($idKey, $table){
             $sth->bindValue(":$key", "$value");
         }
     }
+    print_r($sqlInsert);
 
     //execute query
     try {
@@ -374,14 +377,91 @@ function executeInsertPedido(){
     return executeSelectByID($db->lastInsertId(), $idKey, $table)[0];
 }
 
+function executeSelectDbQueryPedidoItemUserInput(){
+    $tableName = 'PedidoItem';
+    $tableColumns = ['ID_NumeroPedido', 'ID_Produto', 'CodBarras', 'NomeProduto', 'ValorUnitario', 'Quantidade'];
+    $foreingKeys = getTableFKs($tableName);
+    
 
 
+    $qtd_paginacao = isset($_GET['qtd_paginacao']) ? $_GET['qtd_paginacao'] : 20;
+    $offset_atual = isset($_GET['offset_atual']) ? $_GET['offset_atual'] : 0;
+    $ordernar_campo = isset($_GET['ordernar_campo']) ? $_GET['ordernar_campo'] : 'ID';
+    $ordernar_tipo = isset($_GET['ordernar_tipo']) ? $_GET['ordernar_tipo'] : 'ASC';
 
 
+    //sql constructor
+    $sqlSearch = "SELECT    PedidoItem.ID,
+                            PedidoItem.ID_Produto as ID_Produto,
+                            CodBarras,
+                            NomeProduto,
+                            ValorUnitario,
+                            Quantidade
+                    FROM Projeto_PHP_Newtab.PedidoItem
+                        INNER JOIN Projeto_PHP_Newtab.Produto ON PedidoItem.ID_Produto = Produto.ID 
+                    WHERE TRUE AND ";
 
+        
+    //fields and values to be searched
+    $arrayInsertedValues = [];
 
+    foreach ($_GET as $key => $value){
+        $isTableField = in_array($key, $tableColumns);
+        if ($isTableField && $value){
 
+            //special treatment for numeroPedido field which is restricted to FK
+            if ($key == 'ID_NumeroPedido'){
+                $sqlSearch .= " ($key = :$key) AND";
+                $arrayInsertedValues[$key] = $value;
+            } else {
+                $sqlSearch .= " ($key LIKE :$key) AND";
+                $arrayInsertedValues[$key] = $value;
+            }
+        }
 
+    }
 
+    //remove last 'AND'
+    if(substr($sqlSearch, -3) == "AND"){
+        $sqlSearch = substr($sqlSearch, 0, -3);
+    }
 
+    $sqlSearchNotPaginated = $sqlSearch;
 
+    //add order by
+    $sqlSearch .= "ORDER BY Produto.$ordernar_campo $ordernar_tipo ";
+    //add limit and offset
+    $sqlSearch .= "LIMIT $qtd_paginacao OFFSET $offset_atual";
+
+    //execute query
+    $sth = createDbConnection()->prepare($sqlSearch);
+    $sth2 = createDbConnection()->prepare($sqlSearchNotPaginated);
+
+    foreach ($arrayInsertedValues as $key => $value){
+        //special treatment for datetimesearch
+        if ($key == 'ID_NumeroPedido'){
+            $sth->bindValue(":$key", "{$value}");
+            $sth2->bindValue(":$key", "{$value}");
+
+        // others fields using like search
+        } else {
+            $sth->bindValue(":$key", "%{$value}%");
+            $sth2->bindValue(":$key", "%{$value}%");
+        }
+    }
+
+    
+
+    try {
+        $sth->execute();
+        $sth2->execute();
+    } catch (PDOException $e){
+        //if any error occurs then return empty string
+        return [];
+    }
+    
+    $result = $sth->fetchAll();
+    $rowCountResult = $sth2->rowCount();
+    
+    return ['result' => $result, 'rowCount' => $rowCountResult];
+}

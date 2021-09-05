@@ -94,7 +94,7 @@ if ($_GET){
                 <?php if($form == 'new'){ ?>
                     <button title="Cadastrar" value="1" name="savenew" formmethod="post" formaction="/Pedidos/FormPedido.php">Salvar Novo Pedido</button>
                 <?php } elseif($form != 'new') { ?>
-                    <button title="Cadastrar" value="1" name="save" formmethod="post" formaction="/Pedidos/PedidoItens/index.php">Listar Produtos deste Pedido</button>
+                    <button title="Cadastrar" value="1" name="save" formmethod="get" formaction="/Pedidos/PedidoItens/index.php?NumeroPedido=<?php echo $_GET['NumeroPedido']?>">Listar Produtos deste Pedido</button>
                     <button title="Cadastrar Outro Pedido" value="0" name="new" formmethod="get" formaction="/Pedidos/FormPedido.php">Cadastrar Novo Pedido</button>
                 <?php } ?>
             </form>
